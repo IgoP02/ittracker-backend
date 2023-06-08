@@ -22,15 +22,16 @@ Route::get('/hi', function () {
     return "hi";
 });
 Route::post('/submit', [MessageController::class, "store"]);
+Route::get('/messages', [MessageController::class, "index"]);
 
 Route::middleware("auth:sanctum")->group(function () {
     Route::post('/register', [AuthController::class, "register"]);
     Route::get('/logout', [AuthController::class, "logout"]);
 
     Route::prefix("/messages")->group(function () {
-        Route::get('/', [MessageController::class, "index"]);
+        Route::get('/latest', [MessageController::class, "getLatestMessage"]);
         Route::post('/create', [MessageController::class, "store"]);
-        Route::post('/delete', [MessageController::class, "destroy"]);
+        Route::get('/delete', [MessageController::class, "destroyLatestMessage"]);
     });
 });
 

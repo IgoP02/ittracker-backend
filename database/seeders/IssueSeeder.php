@@ -38,10 +38,14 @@ class IssueSeeder extends Seeder
                 "Equipo no enciende",
                 "Mal rendimiento",
                 "Problemas con impresoras, scanners, etc.",
+                "Otro",
             ],
             [
                 "Problemas para usar un programa",
                 "Pérdida de información",
+                "Otro",
+            ],
+            [
                 "Otro",
             ],
         ];

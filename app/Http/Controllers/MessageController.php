@@ -9,7 +9,7 @@ class MessageController extends Controller
 {
     public function index()
     {
-        return $messages = Message::select("message", "type", "created_at")->latest()->limit(5)->get();
+        return $messages = Message::select("message", "type", "created_at")->latest()->limit(4)->get();
     }
     public function store(Request $request, Message $message)
     {
@@ -22,12 +22,11 @@ class MessageController extends Controller
     public function getLatestMessage(Request $request)
     {
 
-        return Message::find($request["id"])->latest()->first();
+        return Message::latest()->first();
     }
 
     public function destroyLatestMessage(Request $request)
     {
-        Message::find($request["id"])->latest()->first()->delete();
-        return response();
+        Message::latest()->first()->delete();
     }
 }
