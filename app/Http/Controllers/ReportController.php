@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Report;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
@@ -134,12 +135,31 @@ class ReportController extends Controller
             })->all();
             $stats = ["Asignado" => $preStats["A"], "Pendiente" => $preStats["P"], "Solucionado" => $preStats["S"], "Cerrado" => $preStats["C"]];
         }
-
+        if ($field == "assignee") {
+            $reports = Report::where("reports.status", "!=", "C")
+                ->Where('reports.status', "!=", 'S')
+                ->get();
+            $stats = $reports->countBy(function ($report) {
+                return $report->assignee;
+            })->all();
+        }
         return response()->json($stats);
     }
 
-    public function destroy(Report $report)
+    public function clear(Request $request)
     {
-        //
+        if ($request->query("days")) {
+            Report::where('created_at', '>=', Carbon::now()
+                    ->subDays($request->query("days"))->toDateTimeString())
+                ->delete();
+
+            return response();
+        } else if ($request->query("status") && $request->query("days")) {
+
+            Report::where("status", $request->query("status"))
+                ->where('created_at', '>=', Carbon::now()->subDays($request->query("days"))->toDateTimeString())
+                ->delete();
+        }
+
     }
 }
