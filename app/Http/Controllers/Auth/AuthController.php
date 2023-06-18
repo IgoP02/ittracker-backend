@@ -65,4 +65,9 @@ class AuthController extends Controller
 
     }
 
+    public function deleteUser(Request $request)
+    {
+        User::where("username", $request->query("username"))->delete();
+    }
+
 }
