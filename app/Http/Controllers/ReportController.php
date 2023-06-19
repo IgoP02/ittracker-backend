@@ -148,18 +148,19 @@ class ReportController extends Controller
 
     public function clear(Request $request)
     {
-        if ($request->query("days")) {
-            Report::where('created_at', '>=', Carbon::now()
-                    ->subDays($request->query("days"))->toDateTimeString())
-                ->delete();
-
-            return response();
+        $reports = null;
+        if ($request->query("days") && $request->query("days") >= 0) {
+            $reports = Report::where('created_at', '<=', Carbon::now()
+                    ->subDays($request->query("days"))->toDateTimeString());
         } else if ($request->query("status") && $request->query("days")) {
-
-            Report::where("status", $request->query("status"))
-                ->where('created_at', '>=', Carbon::now()->subDays($request->query("days"))->toDateTimeString())
-                ->delete();
+            $reports = Report::where("status", $request->query("status"))
+                ->where('created_at', '<=', Carbon::now()->subDays($request->query("days"))->toDateTimeString());
         }
+
+        $reportCount = $reports->count();
+        $reports->delete();
+
+        return response()->json($reportCount, 200);
 
     }
 }
