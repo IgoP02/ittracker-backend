@@ -17,6 +17,7 @@ class ReportController extends Controller
     {
         $active = $request->has("active");
         $pending = $request->has("pending");
+
         $reports = DB::table("reports")->join("departments", "departments.id", "=", "reports.department_id")
             ->join("issues", "issues.id", "=", "reports.issue_id")
             ->join("issue_types", "issue_types.id", "=", "issues.issue_type_id")
@@ -30,14 +31,15 @@ class ReportController extends Controller
                 "reports.priority",
                 "reports.created_at as date",
                 "reports.assignee as assignee"
-            )->when($active, function (Builder $query) {
-            return $query->where("status", "!=", "C")
-                ->where("status", "!=", "S");
-        })->when($pending, function (Builder $query) {
-            return $query->where("status", "!=", "A");
-        })->latest()->paginate($request["perpage"]);
+            )
+            ->when($active, function (Builder $query) {
+                return $query->where("status", "!=", "C")->where("status", "!=", "S");
+            })
+            ->when($pending, function (Builder $query) {
+                return $query->where("status", "!=", "A");
+            })
+            ->latest()->paginate($request["perpage"]);
 
-        // $reports->latest()->paginate($request["perpage"]);
         return $reports;
 
     }
