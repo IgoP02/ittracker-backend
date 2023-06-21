@@ -6,6 +6,7 @@ use App\Models\Report;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
@@ -159,7 +160,11 @@ class ReportController extends Controller
 
     public function clear(Request $request)
     {
+        if (Auth::user()->username != "admin") {
+            return response(null, 401);
+        }
         $reports = null;
+
         if ($request->query("days") && $request->query("days") >= 0) {
             $reports = Report::where('created_at', '<=', Carbon::now()
                     ->subDays($request->query("days"))->toDateTimeString());
@@ -171,7 +176,7 @@ class ReportController extends Controller
         $reportCount = $reports->count();
         $reports->delete();
 
-        return response()->json($reportCount, 200);
+        return response()->json($reportCount);
 
     }
 }
