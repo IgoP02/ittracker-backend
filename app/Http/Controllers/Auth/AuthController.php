@@ -16,6 +16,9 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
+        if (Auth::user()->username != "admin") {
+            return response(null, 401);
+        }
         $validatedData = $request->validate([
             "username" => "required|string|max:50|unique:users",
             "email" => "required|string|email|max:255|unique:users",
