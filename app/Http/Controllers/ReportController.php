@@ -133,7 +133,7 @@ class ReportController extends Controller
             $preStats = Report::all()->countBy(function ($report) {
                 return $report->status;
             })->all();
-            $stats = ["Asignado" => $preStats["A"], "Pendiente" => $preStats["P"], "Solucionado" => $preStats["S"], "Cerrado" => $preStats["C"]];
+            $stats = ["asignado" => $preStats["A"], "pendiente" => $preStats["P"], "solucionado" => $preStats["S"], "cerrado" => $preStats["C"]];
         }
         if ($field == "assignee") {
             $reports = Report::where("reports.status", "!=", "C")
