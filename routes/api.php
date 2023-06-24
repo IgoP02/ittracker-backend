@@ -41,10 +41,11 @@ Route::prefix('/reports')->group(function () {
     Route::get("/field/{field}", [ReportController::class, "getField"]);
     Route::get("/issues/{type_id}", [ReportController::class, "getIssues"]);
     Route::post("/create", [ReportController::class, "store"]);
-    Route::delete("/clear", [ReportController::class, "clear"]);
 
     Route::middleware("auth:sanctum")->group(function () {
         Route::get("/", [ReportController::class, "index"]);
+        Route::get("/own_reports", [ReportController::class, "getOwnAssignedReports"]);
+        Route::delete("/clear", [ReportController::class, "clear"]);
         Route::patch("/update/{id}", [ReportController::class, "update"]);
         Route::get("/stats/{field}", [ReportController::class, "getStats"]);
         Route::get("/user", [AuthController::class, "getUser"]);
