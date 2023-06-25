@@ -16,8 +16,9 @@ class ReportController extends Controller
      */
     public function index(Request $request)
     {
-        $active = $request->has("active");
-        $pending = $request->has("pending");
+        $active = $request->boolean("active");
+        $pending = $request->boolean("pending");
+        $assignee = $request->query("assignee") ? $request->query("assignee") : false;
 
         $reports = DB::table("reports")->join("departments", "departments.id", "=", "reports.department_id")
             ->join("issues", "issues.id", "=", "reports.issue_id")
@@ -38,6 +39,9 @@ class ReportController extends Controller
             })
             ->when($pending, function (Builder $query) {
                 return $query->where("status", "!=", "A");
+            })
+            ->when($assignee, function (Builder $query, $assignee) {
+                return $query->where("assignee", $assignee);
             })
             ->latest()->paginate($request["perpage"]);
 
@@ -94,12 +98,33 @@ class ReportController extends Controller
         return $report;
     }
 
+    public function getOwnAssignedReports(Request $request, Report $reports)
+    {
+        return $reports = Report::join("departments", "departments.id", "=", "reports.department_id")
+            ->join("issues", "issues.id", "=", "reports.issue_id")
+            ->join("issue_types", "issue_types.id", "=", "issues.issue_type_id")
+            ->select(
+                "reports.id",
+                "reports.status",
+                "departments.name as department",
+                "reports.priority",
+                "reports.description",
+                "issues.name as issue",
+                "issue_types.name as type",
+                "reports.created_at as date",
+            )->where("assignee", Auth::user()->name)->where("status", "!=", "C")->where("status", "!=", "S")
+            ->paginate($request->query("perpage"));
+    }
+
     public function update(Request $request)
     {
         $report = Report::find($request["id"]);
         $report->status = $request->query("status");
         if ($request->query("status") == "A") {
             $report->assignee = $request->user()->name;
+        }
+        if ($request->query("status") == "P") {
+            $report->assignee = "NA";
         }
         $report->save();
         return response(["assignee" => $request->user()->name], $status = 200);
@@ -168,13 +193,13 @@ class ReportController extends Controller
         if ($request->query("days") && $request->query("days") >= 0) {
             $reports = Report::where('created_at', '<=', Carbon::now()
                     ->subDays($request->query("days"))->toDateTimeString());
-        } else if ($request->query("status") && $request->query("days")) {
+        } else if ($request->query("status") && $request->query("days") >= 0) {
             $reports = Report::where("status", $request->query("status"))
                 ->where('created_at', '<=', Carbon::now()->subDays($request->query("days"))->toDateTimeString());
         }
 
         $reportCount = $reports->count();
-        $reports->delete();
+        // $reports->delete();
 
         return response()->json($reportCount);
 
