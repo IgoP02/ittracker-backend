@@ -13,9 +13,12 @@ class MessageController extends Controller
     }
     public function store(Request $request, Message $message)
     {
+
         $message->message = $request["message"];
         $message->type = $request["type"];
         $message->save();
+        activity("message_post")->log("Usuario " .
+            $request->user()->name . " publicó un anuncio");
 
     }
 
