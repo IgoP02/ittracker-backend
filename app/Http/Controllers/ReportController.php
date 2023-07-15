@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Department;
+use App\Models\Issue;
 use App\Models\Report;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -16,8 +18,11 @@ class ReportController extends Controller
      */
     public function index(Request $request)
     {
-        $active = $request->has("active");
-        $pending = $request->has("pending");
+        $active = $request->boolean("active");
+        $pending = $request->boolean("pending");
+        $assignee = $request->query("assignee") ? $request->query("assignee") : false;
+        $department = $request->query("department") ? $request->query("department") : false;
+        $type = $request->query("type");
 
         $reports = DB::table("reports")->join("departments", "departments.id", "=", "reports.department_id")
             ->join("issues", "issues.id", "=", "reports.issue_id")
@@ -38,6 +43,15 @@ class ReportController extends Controller
             })
             ->when($pending, function (Builder $query) {
                 return $query->where("status", "!=", "A");
+            })
+            ->when($assignee, function (Builder $query, $assignee) {
+                return $query->where("assignee", "like", "%$assignee%");
+            })
+            ->when($department, function (Builder $query, $department) {
+                return $query->where("departments.name", "like", "%$department%");
+            })
+            ->when($type, function (Builder $query, $type) {
+                return $query->where("issue_types.name", "like", "%$type%");
             })
             ->latest()->paginate($request["perpage"]);
 
@@ -67,6 +81,8 @@ class ReportController extends Controller
             "description" => $request["description"] ? $request["description"] : "No provista.",
         ]);
 
+        activity("report_creation")->log("creado reporte #" . $report->id);
+
         return response($report->id, 200);
     }
 
@@ -75,6 +91,7 @@ class ReportController extends Controller
      */
     public function show(Request $request, Report $report)
     {
+
         $report = Report::join("departments", "departments.id", "=", "reports.department_id")
             ->join("issues", "issues.id", "=", "reports.issue_id")
             ->join("issue_types", "issue_types.id", "=", "issues.issue_type_id")
@@ -90,8 +107,32 @@ class ReportController extends Controller
                 "reports.assignee as assignee"
             )
             ->where("reports.id", $request["id"])->firstOrFail();
+        activity("report_query")->log("consulta a reporte #" . $report->id);
 
         return $report;
+    }
+
+    public function getOwnAssignedReports(Request $request, )
+    {
+        if (!Auth::user()) {
+            activity("auth_fail")->log("Intento de acceso no autorizado a cliente " . getHostByName(getHostName()));
+            return;
+        }
+        return Report::join("departments", "departments.id", "=", "reports.department_id")
+            ->join("issues", "issues.id", "=", "reports.issue_id")
+            ->join("issue_types", "issue_types.id", "=", "issues.issue_type_id")
+            ->select(
+                "reports.id",
+                "reports.status",
+                "departments.name as department",
+                "reports.priority",
+                "reports.description",
+                "issues.name as issue",
+                "issue_types.name as type",
+                "reports.created_at as date",
+            )->where("assignee", Auth::user()->name)->where("status", "!=", "C")->where("status", "!=", "S")
+            ->latest()
+            ->paginate($request->query("perpage"));
     }
 
     public function update(Request $request)
@@ -101,7 +142,16 @@ class ReportController extends Controller
         if ($request->query("status") == "A") {
             $report->assignee = $request->user()->name;
         }
+        if ($request->query("status") == "P") {
+            $report->assignee = "NA";
+        }
         $report->save();
+        activity("report_update")->log("reporte #" . $report->id
+            . " actualizado a "
+            . $request["status"]
+            . " por "
+            . $request->user()->name);
+
         return response(["assignee" => $request->user()->name], $status = 200);
     }
 
@@ -161,20 +211,25 @@ class ReportController extends Controller
     public function clear(Request $request)
     {
         if (Auth::user()->username != "admin") {
+            activity("auth_fail")->log("Intento de acceso no autorizado a cliente " . getHostByName(getHostName()));
             return response(null, 401);
         }
         $reports = null;
+        $logMessage = null;
 
         if ($request->query("days") && $request->query("days") >= 0) {
             $reports = Report::where('created_at', '<=', Carbon::now()
                     ->subDays($request->query("days"))->toDateTimeString());
-        } else if ($request->query("status") && $request->query("days")) {
+            $logMessage = "reportes mayores a " . $request["days"];
+        } else if ($request->query("status") && $request->query("days") >= 0) {
             $reports = Report::where("status", $request->query("status"))
                 ->where('created_at', '<=', Carbon::now()->subDays($request->query("days"))->toDateTimeString());
+            "reportes " . $reports["status"] . " mayores a " . $request["days"];
         }
 
         $reportCount = $reports->count();
         $reports->delete();
+        activity("report_deletion")->log($logMessage . ", " . $reportCount . " total");
 
         return response()->json($reportCount);
 

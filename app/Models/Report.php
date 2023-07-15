@@ -23,26 +23,16 @@ class Report extends Model
     public function getCreatedAtAttribute(): Attribute
     {
         return Attribute::make(
-            get:fn(mixed $value) => Carbon::parse($value, 'America/Caracas')->diffForHumans(),
-        );
-    }
-    public function getNameAttribute(): Attribute
-    {
-        return Attribute::make(
-            get:fn(mixed $value) => Str::upper($value)
+            get: fn(mixed $value) => Carbon::parse($value, 'America/Caracas')->diffForHumans(),
         );
     }
 
     public function department()
     {
-        return $this->belongsTo(Department::class);
+        return $this->belongsTo(Department::class, "department_id");
     }
     public function issue()
     {
         return $this->belongsTo(Issue::class);
-    }
-    public function status()
-    {
-        return $this->belongsTo(Status::class);
     }
 }

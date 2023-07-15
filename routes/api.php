@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\LogsController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
@@ -18,16 +19,19 @@ use Illuminate\Support\Facades\Route;
 
 //auth routes
 Route::post('/login', [AuthController::class, "login"]);
-Route::get('/hi', function () {
-    return "hi";
-});
 Route::post('/submit', [MessageController::class, "store"]);
 Route::get('/messages', [MessageController::class, "index"]);
 
 Route::middleware("auth:sanctum")->group(function () {
     Route::post('/register', [AuthController::class, "register"]);
     Route::get('/logout', [AuthController::class, "logout"]);
+    Route::get('/user', [AuthController::class, "getUser"]);
 
+    Route::prefix("logs")->group(function () {
+        Route::get("/", [LogsController::class, "index"]);
+        Route::delete("/", [LogsController::class, "clear"]);
+
+    });
     Route::prefix("/messages")->group(function () {
         Route::get('/latest', [MessageController::class, "getLatestMessage"]);
         Route::post('/create', [MessageController::class, "store"]);
@@ -41,17 +45,13 @@ Route::prefix('/reports')->group(function () {
     Route::get("/field/{field}", [ReportController::class, "getField"]);
     Route::get("/issues/{type_id}", [ReportController::class, "getIssues"]);
     Route::post("/create", [ReportController::class, "store"]);
-    Route::delete("/clear", [ReportController::class, "clear"]);
 
     Route::middleware("auth:sanctum")->group(function () {
         Route::get("/", [ReportController::class, "index"]);
+        Route::get("/own_reports", [ReportController::class, "getOwnAssignedReports"]);
+        Route::delete("/clear", [ReportController::class, "clear"]);
         Route::patch("/update/{id}", [ReportController::class, "update"]);
         Route::get("/stats/{field}", [ReportController::class, "getStats"]);
-        Route::get("/user", [AuthController::class, "getUser"]);
     });
-
-    //form populating routes
-
-    //auth test
 
 });
